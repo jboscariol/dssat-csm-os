@@ -95,6 +95,7 @@ C-----------------------------------------------------------------------
 !         'MZIXM' - IXIM Maize
 !         'TNARO' - Aroids - Tanier
 !         'TRARO' - Aroids - Taro
+!         'TRGRO' - TREEGRO						   
 !         'RIORZ' - IRRI ORYZA Rice model
 !         'WHAPS' - APSIM N-wheat
 !         'TFAPS' - APSIM Tef
@@ -112,7 +113,7 @@ C-----------------------------------------------------------------------
       USE FloodModule
 
       IMPLICIT NONE
-      EXTERNAL ALOHA_PINEAPPLE,BS_CERES,CROPGRO,CSCAS_INTERFACE,
+      EXTERNAL ALOHA_PINEAPPLE,BS_CERES,CROPGRO,TREEGRO,CSCAS_INTERFACE,
      &  CSCERES_INTERFACE,CSCRP_INTERFACE,CSP_CASUPRO,CSYCA_INTERFACE,
      &  FIND,FORAGE,GETLUN,ML_CERES,MZ_CERES,PT_SUBSTOR,READ_ASCE_KT,
      &  RICE,SAMUCA,SC_CNGRO,SG_CERES,SU_CERES,SUMVALS,TEFF,TF_APSIM,
@@ -213,6 +214,7 @@ C         Variables to run CASUPRO from Alt_PLANT.  FSR 07-23-03
 !     The plant routines do not use these codes, but the SPAM module
 !       does and it will bomb when species parameters are not found.
       IF (INDEX(MODEL,'CRGRO') <= 0 .and. index(model,'PRFRM') <= 0
+     &  .and. index(model,'TRGRO') <= 0
      &  .AND. ISWITCH % MEPHO .EQ. 'L') THEN
         ISWITCH % MEPHO = 'C'
 !       Put ISWITCH data where it can be retreived
@@ -231,6 +233,7 @@ C         Variables to run CASUPRO from Alt_PLANT.  FSR 07-23-03
   130 FORMAT('Canopy photosynthesis option will be used.')
 
       IF (INDEX(MODEL,'CRGRO') <= 0 .and. index(model,'PRFRM') <= 0
+     &  .and. index(model,'TRGRO') <= 0
      &  .AND. ISWITCH % MEEVP .EQ. 'Z') THEN
 !       Default to Priestly-Taylor potential evapotranspiration
         ISWITCH % MEEVP = 'R'
@@ -299,6 +302,18 @@ C         Variables to run CASUPRO from Alt_PLANT.  FSR 07-23-03
       CropStatus = -99
       CONTROL % CropStatus = -99
 
+!     Don't change these for TreeGro - year 2 and on.
+      IF (INDEX(MODEL(1:5),'TRGRO') <= 0 .OR.    !Not a tree or
+     &  RUN .EQ. 1 .OR.                     !1st year or
+     &  INDEX('QPF',RNMODE) .LE. 0) THEN     !Not sequence run
+        CANHT    = 0.0
+        RLV      = 0.0
+        STGDOY   = 9999999
+        XHLAI    = 0.0
+        XLAI     = 0.0
+      ENDIF
+      ! If not Citrus, need more codes here
+	  
       CALL READ_ASCE_KT(CONTROL, MEEVP)
 
 !***********************************************************************
@@ -393,6 +408,16 @@ C         Variables to run CASUPRO from Alt_PLANT.  FSR 07-23-03
      &    STGDOY, UNH4, UNO3, XHLAI, XLAI)                !Output
 
 !     -------------------------------------------------
+!     TREEGRO model
+      CASE('TRGRO')										
+          CALL TREEGRO(CONTROL, ISWITCH, 
+     &    EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,   !Input
+     &    ST, SW, TRWUP, WEATHER, YREND, YRPLT,           !Input
+     &    CANHT, CropStatus, EORATIO, HARVRES, KSEVAP,    !Output
+     &    KTRANS, MDATE, NSTRES, PSTRES1,                 !Output
+     &    PUptake, PORMIN, RLV, RWUMX, SENESCE,           !Output
+     &    STGDOY, FracRts, UNH4, UNO3, XHLAI, XLAI)       !Output
+!     -------------------------------------------------			   
 !     Wheat and Barley CSCER
       CASE('CSCER')
         CALL CSCERES_Interface (CONTROL, ISWITCH,          !Input
